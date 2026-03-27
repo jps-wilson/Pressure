@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@300;400&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <title>Pressure</title>
@@ -18,14 +18,15 @@
 
         <header class="location">
             <p id="city"></p>
-            <div class="right">
-                <button id="get-location">Get Location</button>
-                <span id="date-time"></span>
-            </div>
+            <button id="get-location">Get Location</button>
+            <span id="date-time"></span>
         </header>
 
         <section class="dial-section">
             <div class="dial">
+                <svg class="dial-tick-ring" id="dial-tick-svg" xmlns="http://www.w3.org/2000/svg"
+                    style="position:absolute;inset:0;width:100%;height:100%;border-radius:50%;pointer-events:none;">
+                </svg>
                 <div class="dial-inner">
                     <h1></h1>
                     <div class="pressure-value"></div>
@@ -34,13 +35,15 @@
             </div>
         </section>
 
+        <div class="dial-divider"></div>
+
         <section class="insight">
             <p></p>
         </section>
 
         <section class="chips">
+            <div class="chip">Temperature</div>
             <div class="chip">Air Quality</div>
-            <div class="chip">Pressure ↓</div>
             <div class="chip">Humidity</div>
             <div class="chip">UV</div>
         </section>
