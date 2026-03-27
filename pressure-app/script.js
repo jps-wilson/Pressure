@@ -19,17 +19,15 @@ function setPreUseState() {
   dialH1.textContent = "--";
   pressureVal.textContent = "-- hPa";
   dialP.textContent = "Atmospheric Pressure";
-
   dialInner.classList.add("idle");
-
   // Show dial glow immediately
   setAtmosphere(15);
 }
 
 function initChips() {
   const chips = document.querySelectorAll(".chip");
-  chips[0].textContent = "Air Quality: --";
-  chips[1].textContent = "Pressure: --";
+  chips[0].textContent = "Temperature: --";
+  chips[1].textContent = "Air Quality: --";
   chips[2].textContent = "Humidity: --";
   chips[3].textContent = "UV: --";
 }
@@ -110,18 +108,22 @@ function setStrain(pressure) {
   }
 }
 
+const AQI_LABELS = [
+  "Good",
+  "Moderate",
+  "Unhealthy for Sensitive Groups",
+  "Unhealthy",
+  "Very Unhealthy",
+  "Hazardous",
+];
+
 // Update chips dynamically
-function updateChips(temp, pressure) {
+function updateChips(temp, humidity, uvIndex, aqiIndex) {
   const chips = document.querySelectorAll(".chip");
-  try {
-    chips[0].textContent = `Air Quality: Good`; // placeholder -> replace with real API
-    chips[1].textContent = `Pressure: ${Math.round(pressure)} hPa`;
-    chips[2].textContent = `Humidity: 65%`; // placeholder
-    chips[3].textContent = `UV: 3`; //placeholder
-    console.log("Chips updated:", chips);
-  } catch (err) {
-    console.error("Chip update failed:", err);
-  }
+  chips[0].textContent = `Temperature: ${Math.round(temp)}°C`;
+  chips[1].textContent = `Air Quality: ${AQI_LABELS[aqiIndex - 1] ?? "Unknown"}`;
+  chips[2].textContent = `Humidity: ${humidity}%`;
+  chips[3].textContent = `UV: ${uvIndex}`;
 }
 
 // Fetch weather and update UI
@@ -178,20 +180,24 @@ function fetchWeather() {
       }
 
       try {
+        const API_KEY = "3aa5677223204828a9705949262703";
         const weatherResponse = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=pressure_msl`,
+          `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${latitude},${longitude}&aqi=yes`,
         );
         const weatherData = await weatherResponse.json();
         console.log("Weather Data:", weatherData);
 
-        const temp = weatherData.current_weather.temperature;
-        const pressure = weatherData.hourly?.pressure_msl?.[0] ?? 1013;
-        pressureValueElem.textContent = `${Math.round(pressure)} hPa`;
+        const current = weatherData.current;
+        const temp = current.temp_c;
+        const pressure = current.pressure_mb;
+        const humidity = current.humidity;
+        const uvIndex = current.uv;
+        const aqiIndex = current.air_quality?.["us-epa-index"] ?? 1;
 
         pressureValueElem.textContent = `${Math.round(pressure)} hPa`;
         setStrain(pressure);
         setAtmosphere(temp);
-        updateChips(temp, pressure);
+        updateChips(temp, humidity, uvIndex, aqiIndex);
 
         if (window.pressureDriftInterval) {
           clearInterval(window.pressureDriftInterval);
@@ -199,6 +205,7 @@ function fetchWeather() {
 
         window.pressureDriftInterval = setInterval(() => {
           const microShift = pressure + (Math.random() * 0.6 - 0.3);
+          pressureValueElem.textContent = `${microShift.toFixed(1)} hPa`;
         }, 4000);
 
         document.querySelector(".dial-inner").classList.remove("idle");
@@ -211,11 +218,13 @@ function fetchWeather() {
         getLocationBtn.textContent = "Try Again";
       }
     },
-    () => {
+    (error) => {
+      console.error("Geolocation error:", error.code, error.message);
       city.textContent = "Location unavailable";
       getLocationBtn.disabled = false;
       getLocationBtn.textContent = "Get Location";
     },
+    { timeout: 10000, maximumAge: 6000, enableHighAccuracy: false },
   );
 }
 
@@ -253,6 +262,35 @@ window.addEventListener("error", (event) => {
 
 setPreUseState();
 
+function drawDialTicks() {
+  const svg = document.getElementById("dial-tick-svg");
+  if (!svg) return;
+
+  const size = dial.offsetWidth;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 10;
+
+  let html = "";
+  for (let i = 0; i < 60; i++) {
+    const angle = (i / 60) * 2 * Math.PI - Math.PI / 2;
+    const isMajor = i % 5 === 0;
+    const len = isMajor ? 8 : 4;
+    const x1 = (cx + (r - len) * Math.cos(angle)).toFixed(1);
+    const y1 = (cy + (r - len) * Math.sin(angle)).toFixed(1);
+    const x2 = (cx + r * Math.cos(angle)).toFixed(1);
+    const y2 = (cy + r * Math.sin(angle)).toFixed(1);
+    const opacity = isMajor ? 0.25 : 0.1;
+    const width = isMajor ? 1 : 0.5;
+    html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(220,210,195,${opacity})" stroke-width="${width}"/>`;
+  }
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.innerHTML = html;
+}
+
+drawDialTicks();
+window.addEventListener("resize", drawDialTicks);
+
 document.addEventListener("DOMContentLoaded", () => {
   setPreUseState();
   document.body.classList.add("preboot");
@@ -260,12 +298,5 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     document.body.classList.remove("preboot");
     document.body.classList.add("booting");
-
-    // Run calibration sweep on first visit
-    const hasVisited = localStorage.getItem("pressure_hasVisited");
-    if (!hasVisited) {
-      runCalibrationSweep();
-      localStorage.setItem("pressure_hasVisited", "true");
-    }
   }, 300);
 });
