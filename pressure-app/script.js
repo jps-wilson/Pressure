@@ -4,13 +4,10 @@ const dialInner = document.querySelector(".dial-inner");
 const dialH1 = dialInner.querySelector("h1");
 const pressureVal = dialInner.querySelector(".pressure-value");
 const dialP = dialInner.querySelector("p");
-const strainText = document.querySelector(".dial h1");
 const dateTime = document.getElementById("date-time");
 const city = document.getElementById("city");
 const body = document.body;
 const getLocationBtn = document.getElementById("get-location");
-const dialValue = document.querySelector(".dial-inner h1");
-const pressureValueElem = document.querySelector(".pressure-value");
 const insight = document.querySelector(".insight p");
 
 document.body.classList.add("preboot");
@@ -194,7 +191,7 @@ function fetchWeather() {
         const uvIndex = current.uv;
         const aqiIndex = current.air_quality?.["us-epa-index"] ?? 1;
 
-        pressureValueElem.textContent = `${Math.round(pressure)} hPa`;
+        pressureVal.textContent = `${Math.round(pressure)} hPa`;
         setStrain(pressure);
         setAtmosphere(temp);
         updateChips(temp, humidity, uvIndex, aqiIndex);
@@ -205,7 +202,7 @@ function fetchWeather() {
 
         window.pressureDriftInterval = setInterval(() => {
           const microShift = pressure + (Math.random() * 0.6 - 0.3);
-          pressureValueElem.textContent = `${microShift.toFixed(1)} hPa`;
+          pressureVal.textContent = `${microShift.toFixed(1)} hPa`;
         }, 4000);
 
         document.querySelector(".dial-inner").classList.remove("idle");
@@ -292,9 +289,6 @@ drawDialTicks();
 window.addEventListener("resize", drawDialTicks);
 
 document.addEventListener("DOMContentLoaded", () => {
-  setPreUseState();
-  document.body.classList.add("preboot");
-
   setTimeout(() => {
     document.body.classList.remove("preboot");
     document.body.classList.add("booting");
