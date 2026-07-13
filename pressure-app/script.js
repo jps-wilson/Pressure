@@ -172,17 +172,20 @@ function fetchWeather() {
       } catch (geoError) {
         console.error("Geocoding failed:", geoError);
         city.textContent = "Location unavailable";
-        getLocationBtn.disabled = true;
+        getLocationBtn.disabled = false;
         getLocationBtn.textContent = "Try Again";
       }
 
       try {
-        const API_KEY = "3aa5677223204828a9705949262703";
         const weatherResponse = await fetch(
-          `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${latitude},${longitude}&aqi=yes`,
+          `/api/weather?lat=${latitude}&lon=${longitude}`,
         );
         const weatherData = await weatherResponse.json();
         console.log("Weather Data:", weatherData);
+
+        if (weatherData.error) {
+          throw new Error(weatherData.error);
+        }
 
         const current = weatherData.current;
         const temp = current.temp_c;
@@ -217,11 +220,21 @@ function fetchWeather() {
     },
     (error) => {
       console.error("Geolocation error:", error.code, error.message);
-      city.textContent = "Location unavailable";
+
+      if (error.code === error.TIMEOUT) {
+        city.textContent = "Location request timed out";
+        getLocationBtn.textContent = "Try Again";
+      } else if (error.code === error.PERMISSION_DENIED) {
+        city.textContent = "Location permission denied";
+        getLocationBtn.textContent = "Enable Location";
+      } else {
+        city.textContent = "Location unavailable";
+        getLocationBtn.textContent = "Try Again";
+      }
+
       getLocationBtn.disabled = false;
-      getLocationBtn.textContent = "Get Location";
     },
-    { timeout: 10000, maximumAge: 6000, enableHighAccuracy: false },
+    { timeout: 20000, maximumAge: 6000, enableHighAccuracy: false },
   );
 }
 
